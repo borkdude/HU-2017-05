@@ -1,6 +1,6 @@
 (ns animals.repl
   (:require [ring.server.standalone :refer [serve]]
-            [animals.api :refer [handler init]]
+            [animals.api :refer [handler init yada-routes]]
             [yada.yada :as yada]
             [bidi.vhosts :refer [vhosts-model]]))
 
@@ -25,8 +25,8 @@
 
 (defonce yada-listener (atom nil))
 
-(defn yada-routes []
-  [#".*" handler])
+(comment
+  (reset-yada))
 
 (defn start-yada []
   (let [vhosts-model (vhosts-model [:* (yada-routes)])
@@ -36,13 +36,16 @@
     (println "Started yada")))
 
 (defn stop-yada []
-  (let [listener @yada-listener]
+  (when-let [listener @yada-listener]
     (if-let [close (:close listener)]
       (close))
     (reset! yada-listener nil)))
 
+(defn reset-yada []
+  (stop-yada)
+  (start-yada))
+
 ;;;; Scratch
 (comment
-  (start-yada)
-  (stop-yada)
+  (reset-yada)
   )

@@ -1,15 +1,18 @@
 (ns animals.api
-    (:require
-     [liberator.core :refer (resource)]
-     [compojure.core :refer (defroutes ANY GET)]
-     [compojure.route :refer (resources not-found)]
-     [ring.middleware.params :refer (wrap-params)]
-     [ring.middleware.edn :refer (wrap-edn-params)]
-     [ring.util.response :refer (redirect)]
-     [animals.animals :as animals]
-     [clj-json.core :as json]
-     [animals.db :as db]
-     [clojure.edn :as edn]))
+  (:require
+   [liberator.core :refer (resource)]
+   [compojure.core :refer (defroutes ANY GET)]
+   [compojure.route :refer (resources not-found)]
+   [ring.middleware.params :refer (wrap-params)]
+   [ring.middleware.edn :refer (wrap-edn-params)]
+   [ring.util.response :refer (redirect)]
+   [animals.animals :as animals]
+   [clj-json.core :as json]
+   [animals.db :as db]
+   [clojure.edn :as edn]
+   [yada.yada :as yada]
+   [yada.context :as ctx]
+   [schema.core :as s]))
 
 (defn handle-exception
   [ctx]
@@ -18,38 +21,6 @@
     {:status 500 :message (.getMessage e)}))
 
 (defroutes routes
-
-  (ANY "/animals"
-       [name species]
-       (resource
-        :available-media-types ["application/edn" "application/json"]
-        :allowed-methods [:get :post]
-        :handle-ok (fn [ctx]
-                     (let [found (animals/read db/db)]
-                       (condp = (-> ctx :representation :media-type)
-                         "application/edn" found
-                         "application/json" (json/generate-string found))))
-        :post! (fn [ctx] {::id (animals/create! db/db {:name name :species species})})
-        :post-redirect? (fn [ctx] {:location (str "/animals/" (::id ctx))})
-        :handle-exception handle-exception))
-
-  (ANY "/animals/:id"
-       [id name species]
-       (let [id (edn/read-string id)]
-         (resource
-           :available-media-types ["application/edn"]
-           :allowed-methods [:get :put :delete]
-           :handle-ok (fn [ctx]
-                        (animals/read db/db id))
-           :put! (fn [ctx]
-                   (animals/update!
-                     db/db id
-                     {:name name :species species}))
-           :new? false
-           :respond-with-entity? true
-           :delete! (fn [ctx] (animals/delete! db/db id))
-           :handle-exception handle-exception)))
-
   (GET "/greeting" []
        "Hello World!")
   (ANY "/"
@@ -59,6 +30,64 @@
   (resources "/" {:root "public"})
   (resources "/" {:root "/META-INF/resources"})
   (not-found "404"))
+
+(def formats #{"application/edn" "application/json"})
+
+(defn new-animals-resource []
+  (yada/resource
+   {:consumes formats
+    :produces formats
+    :methods
+    {:get {:response (fn [ctx]
+                       (animals/read db/db))}
+     :post
+     {:parameters {:body {:name s/Str
+                          :species s/Str}}
+      :response
+      (fn [ctx]
+        (animals/create! db/db
+                         (-> ctx :parameters :body)))}}}))
+
+(defn new-animal-resource []
+  (yada/resource
+   {:consumes formats
+    :produces formats
+    :parameters {:path {:id s/Int}}
+    :methods
+    {:get
+     {:response
+      (fn [ctx]
+        (let [id (ctx/path-parameter ctx :id)]
+          (animals/read db/db id)))}
+     :put
+     {:parameters {:body {:name s/Str
+                          :species s/Str}}
+      :response
+      (fn [ctx]
+        (let [id (ctx/path-parameter ctx :id)]
+          (animals/update!
+           db/db id
+           (-> ctx :parameters :body))))}
+     :delete (fn [ctx]
+               (let [id (ctx/path-parameter ctx :id)]
+                 (let [res (animals/delete! db/db id)]
+                   (println res)
+                   {:ref res})))}}))
+
+(defn yada-api-routes []
+  [""
+   [["/animals" (new-animals-resource)]
+    [["/animals/" :id] (new-animal-resource)]]])
+
+(defn yada-routes []
+  ;; A branch is a vector of a fragment + vector with leafs or branches
+  ;; A leaf is a tuple of a fragment + handler/resource
+  
+  ["" ;; branch
+   ;; branch 
+   [(yada-api-routes)
+    ["/" (fn [req] (redirect "index.html"))]
+    [true handler]]])
 
 (def handler
   (-> routes
