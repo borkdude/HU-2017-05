@@ -1,14 +1,14 @@
 (ns animals.crud
   (:require-macros [cljs.core.async.macros :refer (go)])
   (:require
-   [reagent.core :as reagent :refer [atom]]
+   [reagent.core :as r]
    [cljs-http.client :as http]
    [cljs.core.async :refer (<!)]
    [schema.core :as s]))
 
 (enable-console-print!)
 
-(defonce animals-state (atom #{}))
+(defonce animals-state (r/atom #{}))
 
 ;; initial call to get animals from server
 (go (let [response
@@ -25,25 +25,24 @@
   (go (let [response
             (<! (http/post "/animals" {:edn-params
                                        a}))]
-        (swap! animals-state conj (:body response)))))
+        (swap! animals-state conj a))))
 
 (defn remove-animal! [a]
   (go (let [response
             (<! (http/delete (str "/animals/"
                                   (:id a))))]
-        (if (= 200 (:status response))
-          (swap! animals-state remove-by-id (:id a))))))
+        (swap! animals-state remove-by-id (:id a)))))
  
-(defn update-animal! [a]
+(defn update-animal! [{:keys [id name species] :as a}]
   (go (let [response
-            (<! (http/put (str "/animals/" (:id a))
-                          {:edn-params a}))
-            updated-animal (:body response)]
+            (<! (http/put (str "/animals/" id)
+                          {:edn-params {:name name :species species}}))
+            status (:status response)]
         (swap! animals-state
                (fn [old-state]
                  (conj
-                  (remove-by-id old-state (:id a))
-                  updated-animal))))))
+                  (remove-by-id old-state id)
+                  a))))))
 
 ;;; end crud operations
 
@@ -60,12 +59,12 @@
   (and (seq (-> @atom :name))
        (seq (-> @atom :species))))
 
-(defn animal-row [a]
-  (let [row-state (atom {:editing? false
-                         :name     (:name a)
-                         :species  (:species a)})
+(defn animal-row [{:keys [id name species] :as initial-animal}]
+  (let [row-state (r/atom {:editing? false
+                           :name name
+                           :species species})
         current-animal (fn []
-                         (assoc a
+                         (assoc initial-animal
                                 :name (:name @row-state)
                                 :species (:species @row-state)))]
     (fn []
@@ -87,7 +86,7 @@
   (let [initial-form-values {:name     ""
                              :species  ""
                              :editing? true}
-        form-input-state (atom initial-form-values)]
+        form-input-state (r/atom initial-form-values)]
     (fn []
       [:tr
        [:td [editable-input form-input-state :name]]
@@ -95,7 +94,8 @@
        [:td [:button.btn.btn-primary.pull-right
              {:disabled (not (input-valid? form-input-state))
               :on-click  (fn []
-                          (add-animal! @form-input-state)
+                           (add-animal! (dissoc @form-input-state
+                                                :editing?))
                           (reset! form-input-state initial-form-values))}
              "Add"]]])))
 
@@ -112,5 +112,5 @@
           (sort-by :name @animals-state))
      [animal-form]]]])
 
-(reagent/render-component [animals]
-                          (js/document.getElementById "app"))
+(r/render-component [animals]
+                    (js/document.getElementById "app"))
