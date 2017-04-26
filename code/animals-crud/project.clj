@@ -14,13 +14,14 @@
                  [hiccup "1.0.5"]
                  [reagent "0.6.1"]
                  [prismatic/schema "1.1.1"]
-                 [org.clojure/java.jdbc "0.5.8"]
+                 [org.clojure/java.jdbc "0.6.1"]
                  [com.h2database/h2 "1.4.194"]
+                 [integrant "0.4.0"]
 
                  ;; Yada
-                 [yada "1.2.0"]
+                 [yada "1.2.2"]
                  [aleph "0.4.1"]
-                 [bidi "2.0.16"]]
+                 [bidi "2.0.17"]]
 
   :plugins [[lein-cljsbuild "1.1.3"]]
 

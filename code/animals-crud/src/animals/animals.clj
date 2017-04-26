@@ -1,16 +1,10 @@
 (ns animals.animals
   (:refer-clojure :exclude [read])
   (:require [clojure.java.jdbc :as jdbc]
-            [animals.db :as db]
-            [schema.core :as s]))
-
-(def Animal
- {:name s/Str
-  :species s/Str})
+            [animals.db :as db]))
 
 (defn create!
   ([db m]
-   (s/validate Animal m)
    (let [result (jdbc/insert! db :animals m)
          id (get (first result) (keyword "scope_identity()"))]
      id)))
@@ -54,15 +48,22 @@
                  :species "Salmo salar"})))
 
 (defn init
-  [db]
+  [db & force?]
   (jdbc/with-db-transaction [conn db]
-    (if-not (db/exists? conn "animals")
+    (if (or force? (not (db/exists? conn "animals")))
       (do
         (println "creating animals table")
+        (jdbc/execute! conn ["drop table if exists animals"])
         (jdbc/execute! conn
                        [(jdbc/create-table-ddl :animals
-                                               [:id "bigint primary key auto_increment"]
-                                               [:name "varchar"]
-                                               [:species "varchar"])])
+                                               [[:id "bigint primary key auto_increment"]
+                                                [:name "varchar"]
+                                                [:species "varchar"]] )])
         (insert-samples! conn))
       (println "table animals already exists"))))
+
+;;;; Scratch
+
+(comment
+  (init db/db true)
+  )

@@ -1,35 +1,12 @@
 (ns animals.api
   (:require
-   [liberator.core :refer (resource)]
-   [compojure.core :refer (defroutes ANY GET)]
-   [compojure.route :refer (resources not-found)]
-   [ring.middleware.params :refer (wrap-params)]
-   [ring.middleware.edn :refer (wrap-edn-params)]
-   [ring.util.response :refer (redirect)]
    [animals.animals :as animals]
-   [clj-json.core :as json]
    [animals.db :as db]
-   [clojure.edn :as edn]
    [yada.yada :as yada]
+   [yada.resources.classpath-resource :as cp]
+   [yada.resources.webjar-resource :as wj]
    [yada.context :as ctx]
    [schema.core :as s]))
-
-(defn handle-exception
-  [ctx]
-  (let [e (:exception ctx)]
-    (.printStackTrace e)
-    {:status 500 :message (.getMessage e)}))
-
-(defroutes routes
-  (GET "/greeting" []
-       "Hello World!")
-  (ANY "/"
-       []
-       (redirect "/index.html"))
-
-  (resources "/" {:root "public"})
-  (resources "/" {:root "/META-INF/resources"})
-  (not-found "404"))
 
 (def formats #{"application/edn" "application/json"})
 
@@ -86,13 +63,10 @@
   ["" ;; branch
    ;; branch 
    [(yada-api-routes)
-    ["/" (fn [req] (redirect "index.html"))]
-    [true handler]]])
-
-(def handler
-  (-> routes
-      wrap-params
-      wrap-edn-params))
+    ["/assets/jquery" (wj/new-webjar-resource "jquery")]
+    ["/assets/bootstrap" (wj/new-webjar-resource "bootstrap")]
+    ["" (cp/new-classpath-resource "public" {:index-files ["index.html"]
+                                             :skip-dir? true})]]])
 
 (defn init
   []

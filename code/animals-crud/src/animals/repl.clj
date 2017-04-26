@@ -1,51 +1,49 @@
 (ns animals.repl
-  (:require [ring.server.standalone :refer [serve]]
-            [animals.api :refer [handler init yada-routes]]
+  (:require [animals.api :refer [init yada-routes]]
             [yada.yada :as yada]
-            [bidi.vhosts :refer [vhosts-model]]))
+            [bidi.vhosts :refer [vhosts-model]]
+            [integrant.core :as ig]
+            [animals.db :as db]))
 
-(defonce server (atom nil))
+(def config
+  {:yada {:port 9000}})
 
-(defn start-server
-  "used for starting the server in development mode from REPL"
-  [& [port]]
-  (let [port (if port (Integer/parseInt port) 8080)]
-    (reset! server
-            (serve #'handler
-                   {:port port
-                    :init init
-                    :auto-reload? true                    
-                    :join true
-                    :open-browser? false}))
-    (println (str "You can view the site at http://localhost:" port))))
+(defmethod ig/init-key :yada [_ {:keys [port database] :as opts}]
+  (let [vhosts-model (vhosts-model [:* (yada-routes)])
+        listener (yada/listener vhosts-model
+                                {:port port})]
+    (println "You can view the site at http://localhost:" port)
+    listener))
 
-(defn stop-server []
-  (.stop @server)
-  (reset! server nil))
+(defmethod ig/halt-key! :adapter/jetty [_ listener]
+  (if-let [close (:close listener)]
+    (close)))
+
+(defn start-system []
+  (ig/init config))
 
 (defonce yada-listener (atom nil))
 
-(comment
-  (reset-yada))
-
-(defn start-yada []
-  (let [vhosts-model (vhosts-model [:* (yada-routes)])
+(defn start-server []
+  (let [port 8090
+        vhosts-model (vhosts-model [:* (yada-routes)])
         listener (yada/listener vhosts-model
-                                {:port 8090})]
+                                {:port port})]
     (reset! yada-listener listener)
-    (println "Started yada")))
+    (println "You can view the site at http://localhost:" port)))
 
-(defn stop-yada []
+(defn stop-server []
   (when-let [listener @yada-listener]
     (if-let [close (:close listener)]
       (close))
     (reset! yada-listener nil)))
 
-(defn reset-yada []
-  (stop-yada)
-  (start-yada))
+(defn reset-server []
+  (stop-server)
+  (start-server))
 
 ;;;; Scratch
 (comment
-  (reset-yada)
+  (reset-server)
+  (start-system)
   )
