@@ -12,7 +12,7 @@
 
 ;; initial call to get animals from server
 (go (let [response
-          (<! (http/get "/animals"))
+          (<! (http/get "/api/animals"))
           data (:body response)]
       (reset! animals-state (set data))))
 
@@ -23,19 +23,19 @@
 
 (defn add-animal! [a]
   (go (let [response
-            (<! (http/post "/animals" {:edn-params
+            (<! (http/post "/api/animals" {:edn-params
                                        a}))]
         (swap! animals-state conj a))))
 
 (defn remove-animal! [a]
   (go (let [response
-            (<! (http/delete (str "/animals/"
+            (<! (http/delete (str "/api/animals/"
                                   (:id a))))]
         (swap! animals-state remove-by-id (:id a)))))
  
 (defn update-animal! [{:keys [id name species] :as a}]
   (go (let [response
-            (<! (http/put (str "/animals/" id)
+            (<! (http/put (str "/api/animals/" id)
                           {:edn-params {:name name :species species}}))
             status (:status response)]
         (swap! animals-state

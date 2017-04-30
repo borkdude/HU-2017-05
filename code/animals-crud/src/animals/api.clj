@@ -49,18 +49,15 @@
                  (let [res (db/delete! db id)]
                    {:result res})))}}))
 
-(defn yada-api-routes []
-  [""
-   [["/animals" (new-animals-resource)]
-    [["/animals/" :id] (new-animal-resource)]]])
-
 (defn yada-routes []
   ;; A branch is a vector of a fragment + vector with leafs or branches
   ;; A leaf is a tuple of a fragment + handler/resource
   
   ["" ;; branch
    ;; branch 
-   [(yada-api-routes)
+   [["/api"
+     [["/animals" (new-animals-resource)]
+      [["/animals/" :id] (new-animal-resource)]]]
     ["/assets/jquery" (wj/new-webjar-resource "jquery")]
     ["/assets/bootstrap" (wj/new-webjar-resource "bootstrap")]
     ["" (cp/new-classpath-resource "public" {:index-files ["index.html"]
