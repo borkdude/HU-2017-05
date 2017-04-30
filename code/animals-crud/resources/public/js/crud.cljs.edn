@@ -1,0 +1,2 @@
+{:require [animals.crud]
+ :compiler-options {:asset-path "/js/crud.out"}}
