@@ -1,10 +1,12 @@
 (ns animals.db
+  (:import [java.io File])
   (:refer-clojure :exclude [read])
   (:require [clojure.java.jdbc :as jdbc]))
 
 (def db {:classname "org.h2.Driver"
          :subprotocol "h2:file"
-         :subname "/tmp/db/animals"})
+         :subname (File. (System/getProperty "java.io.tmpdir")
+                         "animals")})
 
 (defn exists?
   "Check whether a given table exists."

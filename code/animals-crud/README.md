@@ -7,7 +7,7 @@ In a terminal, start the app and wait for ClojureScript to build:
     boot dev
 
 Then browse to
-[http://localhost:8080/index.html](http://localhost:8080/index.html)
+[http://localhost:8090/index.html](http://localhost:8080/index.html)
 and have fun.
 
 ## License
