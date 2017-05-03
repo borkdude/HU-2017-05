@@ -2,16 +2,11 @@
 
 ## Running the project
 
-In a terminal, start the web server:
+In a terminal, start the app and wait for ClojureScript to build:
 
-    lein repl
-    (start-server)
+    boot dev
 
-In another terminal, start figwheel:
-
-    lein figwheel
-
-Finally browse to
+Then browse to
 [http://localhost:8080/index.html](http://localhost:8080/index.html)
 and have fun.
 

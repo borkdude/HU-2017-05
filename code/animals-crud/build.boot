@@ -37,7 +37,6 @@
 (deftask dev []
   (comp
    (start-app)
-   (repl :init-ns 'animals.repl)
    (watch)
    (reload :asset-path "/public")
    (cljs-repl)
